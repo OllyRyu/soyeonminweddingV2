@@ -1094,11 +1094,20 @@ function initFx(){
   tick();
 }
 
+/* 커버 높이를 로드 시점 픽셀값으로 고정 — 스크롤 중 주소창이 접혀도 사진이 확대되지 않도록 */
+function lockCoverHeight(){
+  const c=document.querySelector('.cover');
+  if(c) c.style.height=window.innerHeight+'px';
+}
+
 /* INIT */
 render();
 initKakao();
 wireBgm();
 initFx();
+lockCoverHeight();
+window.addEventListener('load', lockCoverHeight);
+window.addEventListener('orientationchange', ()=> setTimeout(lockCoverHeight, 300));
 </script>
 </body>
 </html>
