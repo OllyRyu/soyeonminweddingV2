@@ -946,7 +946,7 @@ function shareKakao(){
   if(window.Kakao && Kakao.isInitialized && Kakao.isInitialized()){
     Kakao.Share.sendDefault({ objectType:'feed',
       content:{ title:`${DATA.groom.name} ♥ ${DATA.bride.name} 결혼합니다`,
-        description:`${DATA.dateText}\n${DATA.venue} ${DATA.hall}`, imageUrl:DATA.gallery[2],
+        description:`${DATA.dateText}\n${DATA.venue} ${DATA.hall}`, imageUrl:'https://ollyryu.github.io/soyeonminwedding/photo/bg.png',
         link:{ mobileWebUrl:shareUrl(), webUrl:shareUrl() } },
       buttons:[{ title:'청첩장 보기', link:{ mobileWebUrl:shareUrl(), webUrl:shareUrl() } }] });
   }else{ copyShareLink(); }
