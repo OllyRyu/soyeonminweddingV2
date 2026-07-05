@@ -156,6 +156,11 @@
 
   /* ── 카드 ── */
   .card{ background:#fff; border:1px solid var(--line); }
+  /* 방명록 목록: 약 3개까지 보이고 스크롤 */
+  .gb-scroll{ max-height:330px; overflow-y:auto; display:flex; flex-direction:column; gap:9px; padding-right:4px; -webkit-overflow-scrolling:touch; }
+  .gb-scroll::-webkit-scrollbar{ width:4px; }
+  .gb-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+  .gb-scroll::-webkit-scrollbar-track{ background:transparent; }
   .acc-head{ display:flex; justify-content:space-between; align-items:center; padding:16px 18px; cursor:pointer; }
   .acc-body{ max-height:0; overflow:hidden; transition:max-height .35s ease; }
   .acc.open .acc-body{ max-height:520px; }
@@ -561,11 +566,9 @@ function guestbookSection(){
       <p class="sans" style="color:var(--soft); font-size:13px; margin-bottom:22px;">축하의 한마디를 남겨 주세요.<br>따뜻한 마음 오래 간직하겠습니다.</p>
       <button class="btn btn-accent" id="gbOpen" style="padding:13px 30px; font-size:14px;">메시지 남기기</button>
     </div>
-    <div id="gbList" style="margin-top:22px; display:flex; flex-direction:column; gap:9px;">
+    <div class="sans" id="gbCount" style="text-align:center; color:var(--soft); font-size:12.5px; letter-spacing:.02em; margin:22px 0 10px;"></div>
+    <div id="gbList" class="gb-scroll">
       <p id="gbEmpty" class="sans" style="text-align:center; color:var(--muted); font-size:13px; padding:18px 0;">불러오는 중…</p>
-    </div>
-    <div id="gbMore" style="text-align:center; margin-top:12px; display:none;">
-      <button class="btn" id="gbMoreBtn" style="padding:10px 20px;">이전 메시지 더 보기</button>
     </div>
   </section>`;
 }
@@ -755,8 +758,6 @@ function wireFeatures(){
       finally{ btn.disabled=false; btn.textContent=orig; }
     });
   }
-  const gbMoreBtn=document.getElementById('gbMoreBtn');
-  if(gbMoreBtn) gbMoreBtn.addEventListener('click', ()=>{ gbShown+=GB_PAGE; gbRender(); });
   const gbOpen=document.getElementById('gbOpen');
   if(gbOpen) gbOpen.addEventListener('click', openGb);
   wireGb();
@@ -969,13 +970,14 @@ function gbFmtDate(iso){
   return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 function gbRender(){
-  const listEl=document.getElementById('gbList'); const moreEl=document.getElementById('gbMore');
+  const listEl=document.getElementById('gbList'); const cntEl=document.getElementById('gbCount');
   if(!listEl) return;
+  if(cntEl) cntEl.textContent = gbCache.length ? `총 ${gbCache.length}개의 축하 메시지` : '';
   if(!gbCache.length){
     listEl.innerHTML=`<p class="sans" style="text-align:center; color:var(--muted); font-size:13px; padding:18px 0;">첫 번째 축하 메시지를 남겨 주세요 🤍</p>`;
-    if(moreEl) moreEl.style.display='none'; return;
+    return;
   }
-  listEl.innerHTML=gbCache.slice(0,gbShown).map(c=>`
+  listEl.innerHTML=gbCache.map(c=>`
     <div class="card" style="padding:14px 16px;">
       <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
         <span class="sans" style="font-weight:500; font-size:13.5px;">${esc(c.name)}</span>
@@ -987,7 +989,6 @@ function gbRender(){
       <p class="sans" style="white-space:pre-line; margin-top:8px; font-size:13.5px; line-height:1.7; color:var(--soft);">${esc(c.message)}</p>
     </div>`).join('');
   listEl.querySelectorAll('.gb-del').forEach(b=> b.addEventListener('click', ()=> gbDelete(b.dataset.id)));
-  if(moreEl) moreEl.style.display = gbCache.length>gbShown ? 'block' : 'none';
 }
 function gbFetchRemote(){
   return new Promise(resolve=>{
