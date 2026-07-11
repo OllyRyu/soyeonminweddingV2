@@ -1028,14 +1028,13 @@ function wireBgm(){
   const MAXVOL=0.5, FADEIN=2, FADEOUT=4;   // 볼륨/페이드인(2초)/페이드아웃(초)
   audio.volume=0;
   audio.addEventListener('timeupdate', ()=>{
-    const d=audio.duration;
-    if(!d || isNaN(d) || !isFinite(d)){ audio.volume=MAXVOL; return; }
-    const t=audio.currentTime;
+    const t=audio.currentTime, d=audio.duration;
     let v=MAXVOL;
-    if(t<FADEIN) v=MAXVOL*(t/FADEIN);                // 시작: 2초 페이드 인
-    else if(t>d-FADEOUT) v=MAXVOL*((d-t)/FADEOUT);   // 끝: 페이드 아웃
+    if(t<FADEIN) v=MAXVOL*(t/FADEIN);                                        // 시작: 2초 페이드 인(곡 길이 몰라도 동작)
+    else if(d && isFinite(d) && t>d-FADEOUT) v=MAXVOL*((d-t)/FADEOUT);       // 끝: 페이드 아웃(곡 길이 알 때만)
     audio.volume=Math.max(0, Math.min(MAXVOL, v));
   });
+  audio.addEventListener('play', ()=>{ if(audio.currentTime<FADEIN) audio.volume=0; });   // 시작 순간 무음 보장(풀볼륨 삑사리 방지)
   const sync=()=> btn.classList.toggle('playing', !audio.paused);
   audio.addEventListener('play', sync);
   audio.addEventListener('pause', sync);
