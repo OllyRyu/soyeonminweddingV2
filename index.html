@@ -731,7 +731,7 @@ function showToast(msg, icon='✓'){
   // 같은 메시지가 이미 떠 있으면 중복으로 띄우지 않음(더블탭·중복 이벤트 방지)
   for(const t of box.children){ if(t.dataset.msg===msg) return; }
   const el=document.createElement('div'); el.className='toast'; el.dataset.msg=msg;
-  el.innerHTML=`<span>${icon}</span><span>${esc(msg)}</span>`;
+  el.innerHTML=`${icon?`<span>${icon}</span>`:''}<span>${esc(msg)}</span>`;   // icon이 빈 값이면 아이콘 없이 문구만
   box.appendChild(el);
   requestAnimationFrame(()=> el.classList.add('show'));
   setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),320); }, 2200);
@@ -821,7 +821,7 @@ function wireFeatures(){
       try{
         await gbAdd(entry);
         gbForm.reset(); closeGb();                          // 완료 즉시 팝업 닫힘(삭제와 동일)
-        showToast('완료되었습니다','♥');
+        showToast('완료되었습니다 ♥','');
       }
       catch(err){ showToast('등록이 지연되었어요. 다시 시도해 주세요','⚠️'); }
       finally{ btn.disabled=false; btn.textContent=orig; }
@@ -1310,7 +1310,7 @@ function openEditModal(item){
       try{ ok=await gbSubmitEdit(cur, pass, newMsg); }catch(_){ ok=false; }
       if(ok){
         editBusy=false; closeEdit();                       // 완료 즉시 팝업 닫힘(삭제와 동일)
-        showToast('완료되었습니다','♥');
+        showToast('완료되었습니다 ♥','');
       }else{
         editBusy=false;
         pw.value=''; try{ pw.focus(); }catch(_){}
