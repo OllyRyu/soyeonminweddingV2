@@ -820,9 +820,8 @@ function wireFeatures(){
       btn.disabled=true; btn.textContent='등록 중…';
       try{
         await gbAdd(entry);
-        btn.textContent='등록되었습니다 💌';               // 팝업 안에서 완료 문구 표시
-        await new Promise(r=>setTimeout(r,800));
-        gbForm.reset(); closeGb();                          // 닫힌 뒤에는 별도 문구 없음
+        gbForm.reset(); closeGb();                          // 완료 즉시 팝업 닫힘(삭제와 동일)
+        showToast('완료되었습니다','♥');
       }
       catch(err){ showToast('등록이 지연되었어요. 다시 시도해 주세요','⚠️'); }
       finally{ btn.disabled=false; btn.textContent=orig; }
@@ -1310,9 +1309,8 @@ function openEditModal(item){
       let ok=false;
       try{ ok=await gbSubmitEdit(cur, pass, newMsg); }catch(_){ ok=false; }
       if(ok){
-        if(sb) sb.textContent='수정되었습니다 ✓';          // 팝업 안에서 완료 문구 표시
-        await new Promise(r=>setTimeout(r,800));
-        editBusy=false; closeEdit();                       // 완료 후 닫힘(닫힌 뒤 문구 없음)
+        editBusy=false; closeEdit();                       // 완료 즉시 팝업 닫힘(삭제와 동일)
+        showToast('완료되었습니다','♥');
       }else{
         editBusy=false;
         pw.value=''; try{ pw.focus(); }catch(_){}
