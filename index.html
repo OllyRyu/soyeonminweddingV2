@@ -1054,7 +1054,11 @@ function wireBgm(){
     if(audio.currentTime<FADEIN){
       audio.volume=0;
       audio.muted=true;                                     // muted는 iOS에서도 동작
-      setTimeout(()=>{ audio.muted=false; }, 200);
+      setTimeout(()=>{
+        audio.muted=false;
+        // 일부 브라우저는 음소거 해제를 정책 위반으로 보고 정지시킴 → 즉시 재생 재시도
+        if(audio.paused) audio.play().catch(()=>{});
+      }, 200);
     }
   });
   const sync=()=> btn.classList.toggle('playing', !audio.paused);
@@ -1079,7 +1083,8 @@ function wireBgm(){
   }
   GESTURES.forEach(ev=> document.addEventListener(ev, firstGesture, { passive:true }));
 
-  // 재생 시작 시점은 로딩 화면(initLoader)이 관리 — 여기서는 탭 복귀 시 재생만 처리
+  // 재생 시작은 로딩 화면(initLoader)이 주도하되, 버퍼 완료·탭 복귀 시에도 보조 시도(허용 환경 놓침 방지)
+  if(audio.readyState<3) audio.addEventListener('canplaythrough', tryAuto, { once:true });
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') tryAuto(); });
 }
 
