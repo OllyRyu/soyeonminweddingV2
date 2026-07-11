@@ -189,6 +189,11 @@
   .toast.show{ opacity:1; transform:none; }
 
   /* ── 초기 로딩 화면(폰트 로드 완료 전까지 표시 → 글씨체 깜빡임 방지) ── */
+  /* & 글리프(Cormorant Garamond Italic)만 잘라 HTML에 내장 → 네트워크 로딩 없이 처음부터 같은 모양 */
+  @font-face{
+    font-family:'LoaderAmp'; font-style:italic; font-weight:400; unicode-range:U+26;
+    src:url(data:font/woff2;base64,d09GMgABAAAAAARQAA8AAAAAB6QAAAP4AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG3QcLgZgP1NUQVREADwRCAqDdINHCwgAATYCJAMMBCAFhHAHIAwHG20GyAQe+PesPzfJKLcaqO1CHsBZKNMF5L8HFw92fOB+pgtOnbbo1H70W2JSJAVlU5mUZZxFEzY4nq3YukUHjPqIxMqPQgA6nclAy8krqcHtmzttAu7R00aOxz3BnDEJNxoON0FYjx85bRKRQDlNVwgnHEVEYfkV4l7UNcUtKZ+QTO2YBXPJ6Bna0x5VmYQ4JcS9zqnRByvxhdhCWJ6yTulv/ULxZjJpYihd+ZIk5yiKlSE+nE9S69MdZeVluSylMS3VA/9/ZCJaofAoJxDLlKnkb4yaIUQK4lay5otnjx4zQ0gYO8OcIB76XWivgBMvqChUhF1sAeWBukO5gbifURtoGUD4R5ICuij0Jmx9ZL2bBaZqQpaF8wB1JQ8X7Sy/7HjvBWihXL+rqklNs4XrWritaVL7AfPtc+pkI93gW72yxpCGXttIeuukoTeWHunVDR0EpBrQ971e3XCkkucFHe/v0RtJj54kvbq5LhgMNjseCsn1N9tUHLqnr3vwxHskEAjI9aGQ0cLv99cn3A+FzL3F0n27doml5+X6iyzx+/1+Y90usfTxC3L9c889J9fvNpQt2y3b+b+6cEdf9/zzz+vrdrBk716W7CFGxn7ZQKpfvpSzo2JQbscGlTsq0/M6ukbtip2yy1G+ePDmoet3xk4ZuLthfsPFg+zlDfN2uuobyIzZLQbK3JSKnRX9qlO6L6tqWP/TrswUmTOwaNewlNrU8h3D+uSm0E2mDOmUVpUw+tSt7OpBnTolvxxj/vxbnOdZ1LSL7tEpxdWtO6b70lMWqIPDIsYUbZidE/Xy3vZ12QMKigo75DeJO/HPQ7vT5Ui41aRd57qKquHlZsHXyP9iPI4Sr2fWpp4Jjr8joy5dlrbn7fo3scmXXvIkr748J9n5b6Q+ZYoesaUuqZpamjXg1ciNw5wpv0WqagvVfzBi1qaln5xMjbc2/v+F1ksr7TlcD3FAn8qxNv5fqfVSv+QKyXpVPEPwNSg/kNMCHV+3mTEC8knWtUOPFkXBEyLrYBI0Fw1NCjYRY1LJ40WTRlf2mcJws8QUTmcqjA564h4Q6i/cQkKFQ7TzU6CKkYxmJhMwmYbBSMYymjHMWOTOYArT6UsnFidbiZFMYhQXTmIGExiL72L5dEbSkclMYzTZASYyzFeQ/1OYl+mTGEEHCuEwPxXrRD4NYx98V2O605HOdKbLT/o3FtvGVZ/9tf0oo5wycumXmZpDy/rUY+8U5jJXaf7GdM3Ad/egMTWMYSSNfyJWIHsy4xiJ79Sfycwqpx6L0ynVmtGMleMzqacjPiYzkU5kY95wmJUWnE5ec2D6g7oqUptRaz7rd7AO0JUk846wVl7RNgIA) format('woff2');
+  }
   #loader{ position:fixed; inset:0; z-index:400; background:#f8f4ee; display:flex; align-items:center; justify-content:center;
     transition:opacity .6s ease; }
   #loader.loaded{ opacity:0; pointer-events:none; }
@@ -196,8 +201,8 @@
   .loader-inner{ display:flex; flex-direction:column; align-items:center; gap:20px; }
   .loader-ring{ width:38px; height:38px; border-radius:50%; border:2px solid var(--accent-soft); border-top-color:var(--accent);
     animation:ldspin .85s linear infinite; }
-  /* 웹폰트 대신 시스템 글꼴 사용 → 로딩 중 폰트 도착 시 & 모양이 바뀌는 현상 방지 */
-  .loader-names{ font-family:serif; font-size:19px; letter-spacing:.08em; color:var(--accent); }
+  /* &는 내장 폰트(LoaderAmp)로 즉시 렌더 → 로딩 중 모양이 바뀌지 않음 */
+  .loader-names{ font-family:'LoaderAmp',serif; font-style:italic; font-size:19px; letter-spacing:.08em; color:var(--accent); }
   .loader-sub{ font-family:sans-serif; font-size:11px; letter-spacing:.28em; color:var(--muted); }
   @keyframes ldspin{ to{ transform:rotate(360deg); } }
 
@@ -246,7 +251,7 @@
   <canvas id="fx" class="fx" aria-hidden="true"></canvas>
 
   <!-- 배경음악 + 상단 재생/정지 버튼 -->
-  <audio id="bgm" src="bgm/bgm2.mp4" loop preload="metadata"></audio>
+  <audio id="bgm" src="bgm/bgm2.mp4" loop preload="auto"></audio>
   <div class="bgm-ctrl">
     <button id="bgmToggle" class="bgm-btn" aria-label="배경음악 재생/정지" title="배경음악">
       <svg class="ic-play" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -1451,8 +1456,16 @@ function initLoader(){
   if(cover && !cover.complete){
     waits.push(new Promise(res=>{ cover.addEventListener('load',res,{once:true}); cover.addEventListener('error',res,{once:true}); }));
   }
+  // BGM이 끊김 없이 재생 가능해질 때까지(canplaythrough) 로딩 화면 유지
+  const bgm=document.getElementById('bgm');
+  if(bgm){
+    try{ bgm.load(); }catch(e){}
+    if(bgm.readyState<4){
+      waits.push(new Promise(res=>{ bgm.addEventListener('canplaythrough',res,{once:true}); bgm.addEventListener('error',res,{once:true}); }));
+    }
+  }
   Promise.all(waits).then(ready);
-  setTimeout(ready, 4500);           // 안전장치: 폰트 API 미지원/지연 시 최대 대기
+  setTimeout(ready, 8000);           // 안전장치: 지원 안 되거나(iOS 등) 네트워크 지연 시 최대 대기
 }
 
 /* INIT */
