@@ -203,8 +203,6 @@
     animation:ldspin .85s linear infinite; }
   /* &는 내장 폰트(LoaderAmp)로 즉시 렌더 → 로딩 중 모양이 바뀌지 않음 (기울임 없음) */
   .loader-names{ font-family:'LoaderAmp',serif; font-size:19px; letter-spacing:.08em; color:var(--accent); }
-  .loader-tap{ font-family:sans-serif; font-size:12px; letter-spacing:.18em; color:var(--accent); animation:ldblink 1.6s ease-in-out infinite; }
-  @keyframes ldblink{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
   .loader-sub{ font-family:sans-serif; font-size:11px; letter-spacing:.28em; color:var(--muted); }
   @keyframes ldspin{ to{ transform:rotate(360deg); } }
 
@@ -240,7 +238,6 @@
       <div class="loader-ring"></div>
       <div class="loader-names">영민 &amp; 소연</div>
       <div class="loader-sub">WEDDING INVITATION</div>
-      <div class="loader-tap" id="loaderTap" hidden>화면을 터치해 주세요</div>
     </div>
   </div>
   <div id="app">
@@ -1476,18 +1473,11 @@ function initLoader(){
     const wait=Math.max(0, MIN_MS-(performance.now()-start));
     setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=> loader.classList.add('hidden'), 650); }, wait);
   };
-  const tapGate=()=>{                // 자동재생 차단: 터치를 입장 신호로 사용
-    const ring=loader.querySelector('.loader-ring');
-    const tip=document.getElementById('loaderTap');
-    if(ring) ring.style.display='none';
-    if(tip) tip.hidden=false;
-    loader.addEventListener('pointerdown', ()=>{ if(bgm) bgm.play().catch(()=>{}); hide(); }, { once:true });
-  };
   const ready=()=>{
     if(done) return; done=true;
-    if(!bgm){ hide(); return; }
-    const p=bgm.play();              // 로딩이 끝나는 시점에 재생 시작
-    if(p && p.then) p.then(hide).catch(tapGate); else hide();
+    // 로딩이 끝나는 시점에 재생 시도 — 차단된 환경(아이폰 등)은 첫 터치에서 재생(wireBgm)
+    if(bgm){ const p=bgm.play(); if(p && p.catch) p.catch(()=>{}); }
+    hide();
   };
   const waits=[];
   if(document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
