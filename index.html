@@ -1478,8 +1478,11 @@ function initLoader(){
   };
   const ready=()=>{
     if(done) return; done=true;
-    // 로딩이 끝나는 시점에 재생 시도 — 차단된 환경(아이폰 등)은 첫 터치에서 재생(wireBgm)
-    if(bgm){ const p=bgm.play(); if(p && p.catch) p.catch(()=>{}); }
+    // 로딩이 끝나는 시점에 재생 시도 — 차단된 환경(아이폰·QR 등)은 안내 토스트 후 첫 탭에서 재생(wireBgm)
+    if(bgm){
+      const p=bgm.play();
+      if(p && p.catch) p.catch(()=>{ setTimeout(()=>{ if(bgm.paused) showToast('화면을 터치하면 음악이 재생됩니다','🎵'); }, 1700); });
+    }
     hide();
   };
   const waits=[];
