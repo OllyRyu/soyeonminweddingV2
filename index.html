@@ -375,21 +375,21 @@ const DATA = {
   transport:[
     { icon:'🅿️', title:'주차안내 (5시간 무료)', lines:[
         '※ 이용 가능 주차장 (주차 등록 불필요)',
-        '1. 메리빌리아 주차장 (송도 트리플스트리트 A동)',
-        '2. 송도 트리플스트리트 B~D동 주차장',
-        '3. 웨딩홀 맞은편 송도테크노파크 IT센터 주차장',
-        '(송도과학로 32)'
+        '>1. 메리빌리아 주차장 (송도 트리플스트리트 A동)',
+        '>2. 송도 트리플스트리트 B~D동 주차장',
+        '>3. 웨딩홀 맞은편 송도테크노파크 IT센터 주차장',
+        '>>(송도과학로 32)'
     ]},
     { icon:'🚇', title:'지하철', lines:[
         '인천 1호선 테크노파크역 2번 출구 (도보 5분)',
         '현대프리미엄아울렛 지나 전방 좌측 건물'
     ]},
     { icon:'🚌', title:'버스', lines:[
-        '· 테크노파크역',
-        '16-1, 320, 81, 9, M6450, 303-1, 4,',
-        '급행91, 급행99, 순환44',
-        '· 송도테크노파크 IT센터',
-        '1302, 9201, 303-1, 9, 순환41'
+        '· 테크노파크역 하차',
+        '>16-1, 320, 81, 9, M6450, 303-1, 4,',
+        '>급행91, 급행99, 순환44',
+        '· 송도테크노파크 IT센터 하차',
+        '>1302, 9201, 303-1, 9, 순환41'
     ]}
   ]
 };
@@ -427,7 +427,7 @@ function coverSection(){
 function greetingSection(){
   return `
   <section class="sec reveal" style="text-align:center; padding-top:70px;">
-    <p class="head" style="font-size:19px; color:var(--text); font-weight:400; letter-spacing:.03em;">소중한 분들을 초대합니다</p>
+    <p class="head" style="font-size:19px; color:var(--text); font-weight:400; letter-spacing:.03em;">소중한 분들을 초대합니다.</p>
     <p style="white-space:pre-line; line-height:2.15; font-size:15px; color:var(--soft); font-weight:300; margin-top:26px;">${esc(DATA.greeting)}</p>
     <div style="margin-top:40px; font-family:var(--sans); font-size:15px; color:var(--soft);">
       신랑 ${esc(DATA.groom.name)} · 신부 ${esc(DATA.bride.name)}
@@ -469,7 +469,7 @@ function locationSection(){
         <span class="sans" style="font-weight:600; font-size:14.5px; color:var(--accent);">${esc(x.title)}</span>
       </div>
       <div class="sans" style="color:var(--soft); font-size:13px; margin-top:10px; line-height:1.75;">
-        ${(()=>{const hasBullet=x.lines.some(l=>l.trim().startsWith('·'));return x.lines.map(l=>{const indent=hasBullet&&!l.trim().startsWith('·');return `<div${indent?' style="padding-left:14px;"':''}>${esc(l)}</div>`;}).join('');})()}
+        ${x.lines.map(l=>{const m=l.match(/^(>{1,2})/);const lv=m?m[1].length:0;return `<div${lv?` style="padding-left:${lv*14}px;"`:''}>${esc(lv?l.slice(lv):l)}</div>`;}).join('')}
       </div>
     </div>`).join('');
   return `
