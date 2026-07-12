@@ -392,7 +392,7 @@ const DATA = {
 };
 
 const CONFIG = {
-  rsvpEndpoint:      '',
+  rsvpEndpoint:      'https://script.google.com/macros/s/AKfycbx7C8tq2ZSpsjoyY8_py0mF537B5a5-2-c0MSTVv7c2fpwvV9T8qOe0nebcpklSHBIf/exec',
   guestbookEndpoint: 'https://script.google.com/macros/s/AKfycbx7C8tq2ZSpsjoyY8_py0mF537B5a5-2-c0MSTVv7c2fpwvV9T8qOe0nebcpklSHBIf/exec',
   kakaoJsKey:        '2e7eee2a1b0c3a851a720c3ef2ae53fa',
   shareUrl:          ''
@@ -754,15 +754,16 @@ async function copyText(text){
 }
 
 async function submitRsvp(payload){
+  if(CONFIG.rsvpEndpoint){
+    // JSONP로 서버의 실제 응답({ok:true})을 확인 — 실패하면 throw → 호출부가 실패 안내
+    const res=await gbJsonp({ type:'rsvp', ...payload }, CONFIG.rsvpEndpoint);
+    if(!(res && res.ok)) throw new Error('rsvp failed');
+  }
   try{
     const key='rsvp_responses';
     const list=JSON.parse(localStorage.getItem(key)||'[]');
     list.push(payload); localStorage.setItem(key, JSON.stringify(list));
   }catch(e){}
-  if(CONFIG.rsvpEndpoint){
-    await fetch(CONFIG.rsvpEndpoint, { method:'POST', mode:'no-cors',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(payload) });
-  }
 }
 
 function wireFeatures(){
@@ -818,7 +819,7 @@ function wireFeatures(){
       const btn=form.querySelector('button[type=submit]'); const orig=btn.textContent;
       btn.disabled=true; btn.textContent='전송 중…';
       try{ await submitRsvp(payload); showToast(`${name}님, ${attend==='참석'?'참석':'불참'} 의사가 전달되었습니다`, '🎉'); form.reset(); }
-      catch(err){ showToast('전송이 지연되었어요. 잠시 후 다시 시도해 주세요','⚠️'); }
+      catch(err){ showToast('전송에 실패했어요. 잠시 후 다시 시도해 주세요','⚠️'); }
       finally{ btn.disabled=false; btn.textContent=orig; }
     });
   }
@@ -844,7 +845,7 @@ function wireFeatures(){
         gbForm.reset(); closeGb();                          // 완료 즉시 팝업 닫힘(삭제와 동일)
         showToast('완료되었습니다 ♥','');
       }
-      catch(err){ showToast('등록이 지연되었어요. 다시 시도해 주세요','⚠️'); }
+      catch(err){ showToast('등록에 실패했어요. 다시 시도해 주세요','⚠️'); }
       finally{ btn.disabled=false; btn.textContent=orig; }
     });
   }
@@ -1218,8 +1219,9 @@ function gbRender(){
   listEl.querySelectorAll('.gb-edit').forEach(b=> b.addEventListener('click', ()=> gbEdit(b.dataset.id)));
   listEl.querySelectorAll('.gb-del').forEach(b=> b.addEventListener('click', ()=> gbDelete(b.dataset.id)));
 }
-// JSONP GET 요청(서버 응답을 실제로 읽음) — 목록 조회/삭제 공용
-function gbJsonp(params){
+// JSONP GET 요청(서버 응답을 실제로 읽음) — 목록 조회/등록/삭제/수정/RSVP 공용
+function gbJsonp(params, endpoint){
+  const url=endpoint||CONFIG.guestbookEndpoint;
   return new Promise(resolve=>{
     const cb='gbcb_'+Math.random().toString(36).slice(2);
     const s=document.createElement('script');
@@ -1228,8 +1230,8 @@ function gbJsonp(params){
     window[cb]=data=> done(data);
     s.onerror=()=>done(null);
     const q=Object.keys(params).map(k=> encodeURIComponent(k)+'='+encodeURIComponent(params[k])).join('&');
-    const sep=CONFIG.guestbookEndpoint.includes('?')?'&':'?';
-    s.src=`${CONFIG.guestbookEndpoint}${sep}${q}&callback=${cb}`;
+    const sep=url.includes('?')?'&':'?';
+    s.src=`${url}${sep}${q}&callback=${cb}`;
     document.body.appendChild(s);
   });
 }
@@ -1246,14 +1248,13 @@ async function gbLoad(){
   gbShown=GB_PAGE; gbRender();
 }
 async function gbAdd(entry){
+  if(CONFIG.guestbookEndpoint){
+    // JSONP로 서버의 실제 응답({ok:true})을 확인 — 실패하면 throw → 화면·로컬에 반영하지 않음
+    const res=await gbJsonp({ type:'guestbook', action:'add', ...entry });
+    if(!(res && res.ok)) throw new Error('add failed');
+  }
   const local=gbLoadLocal(); local.push(entry); gbSaveLocal(local);
   gbCache.unshift(entry); gbRender();
-  if(CONFIG.guestbookEndpoint){
-    // 서버 전송이 끝난 뒤 호출부에서 팝업을 닫도록 완료를 기다림
-    await fetch(CONFIG.guestbookEndpoint, { method:'POST', mode:'no-cors',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body:JSON.stringify({ type:'guestbook', action:'add', ...entry }) });
-  }
 }
 async function gbDelete(id){
   const item=gbCache.find(c=>String(c.id)===String(id)); if(!item) return;
@@ -1267,29 +1268,13 @@ async function gbDelete(id){
   // 삭제가 실제로 완료되면 true를 반환 → 그때 비밀번호 팝업이 닫힘(틀리면 열린 채 재시도)
   await askPassword(async pass=>{
     if(CONFIG.guestbookEndpoint){
-      // 새 서버(JSONP)·구 서버(POST) 삭제를 동시에 요청해 왕복 시간 단축
-      const jsonpP=gbJsonp({ type:'guestbook', action:'delete', id, password:pass });
-      const postP=fetch(CONFIG.guestbookEndpoint, { method:'POST', mode:'no-cors',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body:JSON.stringify({ type:'guestbook', action:'delete', id, password:pass }) }).catch(()=>{});
-
-      // 새 서버가 실제 결과({ok,deleted,reason})를 주면 그대로 사용
-      const res=await jsonpP;
+      // 서버의 실제 결과({ok,deleted,reason})로 판정
+      const res=await gbJsonp({ type:'guestbook', action:'delete', id, password:pass });
       if(res && !Array.isArray(res) && typeof res==='object' && 'ok' in res){
         if(res.deleted || res.reason==='notfound'){ removeLocal(); return true; }
         showToast('비밀번호가 일치하지 않습니다','✕'); return false;
       }
-
-      // 구 서버: POST 완료 후 재조회로 검증(보통 1회면 확인됨)
-      await postP;
-      let gone=false;
-      for(let i=0;i<3 && !gone;i++){
-        const list=await gbFetchRemote();
-        if(list) gone = !list.some(c=>String(c.id)===String(id));
-        if(!gone) await new Promise(r=> setTimeout(r, 500));
-      }
-      if(gone){ removeLocal(); return true; }
-      showToast('비밀번호가 일치하지 않습니다','✕'); return false;
+      showToast('연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요','⚠️'); return false;
     }
 
     // 로컬 전용(엔드포인트 없음): 클라이언트가 비밀번호 검증
@@ -1367,34 +1352,13 @@ async function gbSubmitEdit(item, pass, newMsg){
   };
 
   if(CONFIG.guestbookEndpoint){
-    // 1) 새 서버(JSONP 수정) — 실제 결과({ok,updated,reason}) 사용(재배포 시 즉시)
+    // 서버의 실제 결과({ok,updated,reason})로 판정 — 응답이 없으면 실패 처리(원본 보존)
     const res=await gbJsonp({ type:'guestbook', action:'edit', id, password:pass, message:newMsg });
     if(res && !Array.isArray(res) && typeof res==='object' && 'ok' in res){
       if(res.updated){ applyLocal(); return true; }
       showToast('비밀번호가 일치하지 않습니다','✕'); return false;
     }
-
-    // 2) 구 서버 폴백: 비번검증 위해 삭제 요청 → 사라졌으면(=비번일치) 원본 메타로 재등록(새 메시지)
-    try{
-      await fetch(CONFIG.guestbookEndpoint, { method:'POST', mode:'no-cors',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body:JSON.stringify({ type:'guestbook', action:'delete', id, password:pass }) });
-    }catch(e){}
-    let gone=false;
-    for(let i=0;i<3 && !gone;i++){
-      const list=await gbFetchRemote();
-      if(list) gone = !list.some(c=>String(c.id)===String(id));
-      if(!gone) await new Promise(r=> setTimeout(r, 500));
-    }
-    if(!gone){ showToast('비밀번호가 일치하지 않습니다','✕'); return false; }   // 삭제 안됨 = 비번 불일치
-    // 원본 날짜/id/이름/비번 유지 + 새 메시지로 재등록(순서·정보 보존)
-    try{
-      await fetch(CONFIG.guestbookEndpoint, { method:'POST', mode:'no-cors',
-        headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body:JSON.stringify({ type:'guestbook', action:'add', date:item.date, id:item.id, name:item.name, message:newMsg, password:pass }) });
-    }catch(e){}
-    applyLocal();
-    return true;
+    showToast('연결이 원활하지 않아요. 잠시 후 다시 시도해 주세요','⚠️'); return false;
   }
 
   // 로컬 전용(엔드포인트 없음): 클라이언트가 비밀번호 검증
