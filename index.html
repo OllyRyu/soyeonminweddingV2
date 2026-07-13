@@ -205,6 +205,11 @@
   .loader-names{ font-family:'LoaderAmp',serif; font-size:19px; letter-spacing:.08em; color:var(--accent); }
   .loader-sub{ font-family:sans-serif; font-size:11px; letter-spacing:.28em; color:var(--muted); }
   @keyframes ldspin{ to{ transform:rotate(360deg); } }
+  /* 자동재생 차단 환경: '터치하여 입장' 안내로 전환 */
+  #loader.tap{ cursor:pointer; }
+  #loader.tap .loader-ring{ display:none; }
+  #loader.tap .loader-sub{ color:var(--accent); animation:ldpulse 1.6s ease-in-out infinite; }
+  @keyframes ldpulse{ 0%,100%{ opacity:1; } 50%{ opacity:.35; } }
 
   .rsvp-lbl{ display:block; font-family:var(--sans); font-size:12px; color:var(--soft); margin-bottom:7px; letter-spacing:.04em; }
   .seg{ position:relative; display:block; cursor:pointer; }
@@ -1444,9 +1449,24 @@ function initLoader(){
   };
   const ready=()=>{
     if(done) return; done=true;
-    // 로딩 종료 시 재생 시도(카톡 등 허용 환경) — 차단 환경은 첫 터치/스크롤에서 재생(wireBgm)
-    if(bgm){ const p=bgm.play(); if(p && p.catch) p.catch(()=>{}); }
-    hide();
+    // 로딩 종료 시 재생 시도 — 허용 환경(카톡 인앱 등)은 음악과 함께 자동 입장.
+    // 차단 시: iOS(사파리)는 스크롤도 재생 제스처로 인정되므로 그냥 입장(wireBgm이 처리),
+    // 안드로이드(삼성 인터넷 등 크로뮴)는 스크롤이 인정되지 않아 '터치하여 입장'으로 전환
+    const enterByTap=()=>{
+      loader.classList.add('tap');
+      const sub=loader.querySelector('.loader-sub');
+      if(sub) sub.textContent='터치하여 입장';
+      loader.addEventListener('pointerup', ()=>{ if(bgm) bgm.play().catch(()=>{}); hide(); }, {once:true});
+    };
+    const p=bgm ? bgm.play() : null;
+    if(p && p.then){
+      let acted=false;
+      const once=fn=>()=>{ if(acted) return; acted=true; fn(); };
+      p.then(once(hide)).catch(once(()=>{ IS_IOS ? hide() : enterByTap(); }));
+      setTimeout(once(hide), 1500);   // 재생 판정이 늦어지면 그냥 입장(재생은 wireBgm이 이어받음)
+    } else {
+      hide();
+    }
   };
   const waits=[];
   if(document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
@@ -1454,12 +1474,12 @@ function initLoader(){
   if(cover && !cover.complete){
     waits.push(new Promise(res=>{ cover.addEventListener('load',res,{once:true}); cover.addEventListener('error',res,{once:true}); }));
   }
-  // BGM이 끊김 없이 재생 가능해질 때까지(canplaythrough) 로딩 화면 유지
+  // BGM이 재생을 시작할 수 있는 시점(canplay)까지만 로딩 화면 유지 — 나머지는 재생 중 스트리밍
   // 단 iOS는 터치 전 오디오 사전 로딩을 막아 신호가 오지 않으므로 기다리지 않음(로딩 8초 걸리던 문제)
   const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(bgm && !IS_IOS){
-    if(bgm.readyState<4){
-      waits.push(new Promise(res=>{ bgm.addEventListener('canplaythrough',res,{once:true}); bgm.addEventListener('error',res,{once:true}); }));
+    if(bgm.readyState<3){
+      waits.push(new Promise(res=>{ bgm.addEventListener('canplay',res,{once:true}); bgm.addEventListener('error',res,{once:true}); }));
     }
   }
   Promise.all(waits).then(ready);
