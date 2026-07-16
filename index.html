@@ -354,23 +354,7 @@ const DATA = {
   lat:37.38200, lng:126.65920,
   greeting:'각자의 세상을 사랑하며 살아왔습니다.\n서로를 만난 후,\n우리의 세상은 더 넓고 다채로워졌습니다.\n이제 그 모든 날을 함께 채워가려 합니다.\n소중한 발걸음으로 축복해주세요.',
   cover:'photo/bg.jpg',          // ▶ 커버(맨 위 큰 배경) 사진 — 같은 폴더의 photo/bg.jpg
-  gallery:[
-    'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1525258946800-98cfd641d0de?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1460978812857-470ed1c77af0?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1494955870715-979ca4f13bf0?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=900&q=80',
-    'https://images.unsplash.com/photo-1453747063559-36695c8771bd?auto=format&fit=crop&w=900&q=80'
-  ],
+  gallery:Array.from({length:21}, (_,i)=>`photo/gallery/${i+1}.jpg`),   // photo/gallery/1.jpg ~ 21.jpg
   maps:{
     kakao:'https://map.kakao.com/?q=' + encodeURIComponent('인천 송도 메리빌리아'),
     naver:'https://map.naver.com/p/search/' + encodeURIComponent('인천 송도 메리빌리아'),
@@ -648,7 +632,7 @@ function guestbookSection(){
 function footerSection(){
   return `
   <footer class="sec reveal" style="text-align:center; padding-bottom:50px; background:var(--bg2);">
-    <h2 class="stitle" style="color:var(--accent); margin-top:10px;">감사합니다</h2>
+    <h2 class="stitle" style="color:var(--accent); margin-top:10px;">감사합니다.</h2>
     <p class="en" style="font-size:28px; letter-spacing:.1em; color:var(--text); margin-top:4px;">${esc(DATA.groom.name)} <span class="accent" style="font-style:italic;">&amp;</span> ${esc(DATA.bride.name)}</p>
     <p class="sans" style="color:var(--soft); font-size:12.5px; margin-top:14px; line-height:1.9;">${esc(DATA.dateText)}<br>${esc(DATA.venue)} · ${esc(DATA.hall)}</p>
     <div style="display:flex; gap:8px; justify-content:center; margin-top:26px;">
@@ -798,12 +782,16 @@ function wireFeatures(){
     b.addEventListener('click', e=>{ e.stopPropagation(); copyText(b.dataset.copy); });
   });
 
-  // 갤러리: 더보기(한 번 펼치면 전체 표시 후 버튼 사라짐) + 사진 클릭 → 라이트박스
+  // 갤러리: 더보기 ↔ 접기 토글 + 사진 클릭 → 라이트박스
   const gToggle=document.getElementById('galleryToggle');
   if(gToggle) gToggle.addEventListener('click', ()=>{
-    const grid=document.getElementById('gimgGrid');
-    if(grid) grid.classList.add('expanded');
-    gToggle.style.display='none';
+    const grid=document.getElementById('gimgGrid'); if(!grid) return;
+    const open=grid.classList.toggle('expanded');
+    gToggle.classList.toggle('open', open);
+    const lbl=document.getElementById('galleryToggleLabel');
+    if(lbl) lbl.textContent=open?'접기':'더보기';
+    // 접을 때: 그리드가 짧아져 화면이 엉뚱한 곳에 남지 않게 갤러리 상단으로 스크롤
+    if(!open){ const sec=grid.closest('section'); if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'}); }
   });
   document.querySelectorAll('.gimg').forEach(img=>{
     img.addEventListener('click', ()=> openLightbox(Number(img.dataset.idx)));
