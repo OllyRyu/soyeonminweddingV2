@@ -12,7 +12,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:title" content="류영민 ♥ 이소연 결혼합니다" />
 <meta property="og:description" content="2026년 10월 25일 일요일 오후 12시 40분 · 메리빌리아 송도 · 프리모소르홀" />
-<meta property="og:image" content="https://ollyryu.github.io/soyeonminweddingV2/photo/share.jpg" />
+<meta property="og:image" content="https://ollyryu.github.io/soyeonminweddingV2/photo/share.jpg?v=2" />
 <meta property="og:url" content="https://ollyryu.github.io/soyeonminweddingV2/" />
 <meta name="twitter:card" content="summary_large_image" />
 
@@ -1121,7 +1121,7 @@ function shareKakao(){
   if(window.Kakao && Kakao.isInitialized && Kakao.isInitialized()){
     Kakao.Share.sendDefault({ objectType:'feed',
       content:{ title:`${DATA.groom.name} ♥ ${DATA.bride.name} 결혼합니다`,
-        description:`${DATA.dateText}\n${DATA.venue} · ${DATA.hall}`, imageUrl:'https://ollyryu.github.io/soyeonminweddingV2/photo/share.jpg',
+        description:`${DATA.dateText}\n${DATA.venue} · ${DATA.hall}`, imageUrl:'https://ollyryu.github.io/soyeonminweddingV2/photo/share.jpg?v=2',
         link:{ mobileWebUrl:shareUrl(), webUrl:shareUrl() } },
       buttons:[{ title:'청첩장 보기', link:{ mobileWebUrl:shareUrl(), webUrl:shareUrl() } }] });
   }else{ copyShareLink(); }
