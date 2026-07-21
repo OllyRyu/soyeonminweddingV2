@@ -640,6 +640,7 @@ function footerSection(){
       <button class="btn" id="shareLink" style="padding:12px 18px;">링크 복사</button>
     </div>
     <p class="sans" style="color:var(--muted); font-size:11px; margin-top:26px; opacity:.7;">Made by Olly</p>
+    <p class="sans" id="visitStats" style="color:var(--muted); font-size:9px; margin-top:6px; opacity:.5; letter-spacing:.08em;"></p>
   </footer>`;
 }
 
@@ -1478,6 +1479,22 @@ function initLoader(){
   setTimeout(ready, 8000);           // 안전장치: 네트워크 지연 시 최대 대기
 }
 
+/* 방문자 집계: 하루 1회(기기당) Visits 시트에 기록하고 today/total을 footer에 표시 */
+async function initVisits(){
+  if(!CONFIG.guestbookEndpoint) return;
+  const el=document.getElementById('visitStats'); if(!el) return;
+  let uid=localStorage.getItem('visitUid');
+  if(!uid){ uid=Math.random().toString(36).slice(2)+Date.now().toString(36); localStorage.setItem('visitUid', uid); }
+  const d=new Date(), ds=`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  const params={ type:'visit', page:'v2', uid, ua:navigator.userAgent, ref:document.referrer||'' };
+  if(localStorage.getItem('visitDay')===ds) params.countOnly='1';   // 오늘 이미 기록됨 → 집계만 조회
+  const res=await gbJsonp(params);
+  if(res && res.ok){
+    localStorage.setItem('visitDay', ds);
+    el.textContent=`today ${res.today} · total ${res.total}`;
+  }
+}
+
 /* INIT */
 render();
 initLoader();
@@ -1485,6 +1502,7 @@ initKakao();
 initKakaoMap();
 wireBgm();
 initFx();
+initVisits();
 window.addEventListener('popstate', closeTopModal);   // 뒤로가기 → 페이지 종료 대신 팝업만 닫기
 </script>
 </body>
