@@ -1072,9 +1072,10 @@ function wireBgm(){
   const GESTURES=['pointerdown','touchstart','touchend','click','keydown','scroll'];
   const cleanup=()=> GESTURES.forEach(ev=> document.removeEventListener(ev, firstGesture));
   function firstGesture(e){
-    if(audio.dataset.hold) return;                 // 로딩 잠금 중에는 시작하지 않음 — 종료 0.2초 뒤 startBgm이 처리
+    if(!audio.paused && audio.muted) return;       // iOS 음소거 버퍼링 중(카톡 인앱 조기 재생) — 시작은 startBgm이 처리
     if(e.target && e.target.closest && e.target.closest('#bgmToggle')) return;
     if(userActed || !audio.paused){ cleanup(); return; }
+    delete audio.dataset.hold;                     // 차단 환경(사파리·삼성인터넷)은 원래대로 첫 제스처에서 즉시 재생(딜레이 없음)
     const p=audio.play();
     if(p && p.then) p.then(cleanup).catch(()=>{});   // 실패 시 리스너 유지 → 다음 동작에서 재시도
     else cleanup();
