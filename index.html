@@ -166,6 +166,8 @@
   .gb-scroll::-webkit-scrollbar{ width:4px; }
   .gb-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
   .gb-scroll::-webkit-scrollbar-track{ background:transparent; }
+  /* 방명록 로딩 스피너(목록 도착 전 섹션 안에 표시) */
+  .gb-mini-ring{ width:24px; height:24px; margin:0 auto; border-radius:50%; border:2px solid var(--accent-soft); border-top-color:var(--accent); animation:ldspin .85s linear infinite; }
   /* 방명록 1·2·3등 왕관 */
   .gb-crown{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-right:6px; flex:0 0 auto; }
   .gb-crown b{ position:absolute; top:57%; left:50%; transform:translate(-50%,-50%); font-family:var(--sans); font-size:9px; font-weight:700; color:#fff; line-height:1; }
@@ -624,7 +626,7 @@ function guestbookSection(){
     </div>
     <div class="sans" id="gbCount" style="text-align:center; color:var(--soft); font-size:12.5px; letter-spacing:.02em; margin:22px 0 10px;"></div>
     <div id="gbList" class="gb-scroll">
-      <p id="gbEmpty" class="sans" style="text-align:center; color:var(--muted); font-size:13px; padding:18px 0;">불러오는 중…</p>
+      <div style="padding:18px 0;"><div class="gb-mini-ring"></div><p class="sans" style="text-align:center; color:var(--muted); font-size:13px; margin-top:10px;">메시지를 불러오는 중…</p></div>
     </div>
   </section>`;
 }
@@ -847,7 +849,7 @@ function wireFeatures(){
   const gbOpen=document.getElementById('gbOpen');
   if(gbOpen) gbOpen.addEventListener('click', openGb);
   wireGb();
-  gbLoadPromise=gbLoad();
+  gbLoad();
 
   startCountdown();
 }
@@ -1176,7 +1178,6 @@ function initKakaoMap(){
    ============================================================ */
 const GB_PAGE=5;
 let gbCache=[]; let gbShown=GB_PAGE;
-let gbLoadPromise=null;   // 첫 로딩 완료 신호 — 로더가 방명록 바인딩까지 기다리는 데 사용
 const gbKey='guestbook_entries_v2';
 const gbLoadLocal=()=>{ try{ return JSON.parse(localStorage.getItem(gbKey)||'[]'); }catch(e){ return []; } };
 const gbSaveLocal=list=>{ try{ localStorage.setItem(gbKey, JSON.stringify(list)); }catch(e){} };
@@ -1463,8 +1464,7 @@ function initLoader(){
   };
   const waits=[];
   if(document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
-  // 방명록 메시지를 모두 받아 화면에 그린 뒤 입장 (gbJsonp 자체 8초 타임아웃이 있어 무한 대기 없음)
-  if(gbLoadPromise) waits.push(gbLoadPromise.catch(()=>{}));
+  // 방명록은 기다리지 않음 — 섹션 안의 스피너가 도착할 때까지 표시(gbList 플레이스홀더)
   const cover=document.querySelector('.cover-img');
   if(cover && !cover.complete){
     waits.push(new Promise(res=>{ cover.addEventListener('load',res,{once:true}); cover.addEventListener('error',res,{once:true}); }));
