@@ -1435,12 +1435,22 @@ function initLoader(){
   const MIN_MS=700;                 // 최소 표시(깜빡임 방지)
   let done=false;
   const bgm=document.getElementById('bgm');
+  const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  // iOS는 터치 전 오디오 프리로드가 막혀 로딩이 끝난 뒤에야 다운로드가 시작됨(카톡 인앱에서 로딩이 유독 길던 원인)
+  // → 로딩 시작과 동시에 재생을 시도해 폰트·사진과 병렬로 내려받기. 허용 환경(카톡 인앱)은 준비되는 대로 재생이 시작되고
+  //   그때까지 로딩 화면 유지(노래가 준비된 뒤 입장). 차단 환경(사파리)은 즉시 거부되므로 기다리지 않음.
+  let earlyPlay=null;
+  if(bgm && IS_IOS){
+    const p=bgm.play();
+    if(p && p.then) earlyPlay=p.then(()=>true).catch(()=>false);
+  }
   const hide=()=>{
     const wait=Math.max(0, MIN_MS-(performance.now()-start));
     setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=> loader.classList.add('hidden'), 650); }, wait);
   };
   const ready=()=>{
     if(done) return; done=true;
+    if(bgm && !bgm.paused){ hide(); return; }   // 조기 재생이 이미 성공(iOS 카톡 인앱) → 음악과 함께 바로 입장
     // 로딩 종료 시 재생 시도 — 허용 환경(카톡 인앱 등)은 음악과 함께 자동 입장.
     // 차단 시: iOS(사파리)는 스크롤도 재생 제스처로 인정되므로 그냥 입장(wireBgm이 처리),
     // 안드로이드(삼성 인터넷 등 크로뮴)는 스크롤이 인정되지 않아 '터치하여 입장'으로 전환
@@ -1470,13 +1480,13 @@ function initLoader(){
     waits.push(new Promise(res=>{ cover.addEventListener('load',res,{once:true}); cover.addEventListener('error',res,{once:true}); }));
   }
   // BGM이 재생을 시작할 수 있는 시점(canplay)까지만 로딩 화면 유지 — 나머지는 재생 중 스트리밍
-  // 단 iOS는 터치 전 오디오 사전 로딩을 막아 신호가 오지 않으므로 기다리지 않음(로딩 8초 걸리던 문제)
-  const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  // 단 iOS는 canplay 신호가 오지 않으므로(터치 전 사전 로딩 차단) 위의 조기 재생 결과로 대신 판정
   if(bgm && !IS_IOS){
     if(bgm.readyState<3){
       waits.push(new Promise(res=>{ bgm.addEventListener('canplay',res,{once:true}); bgm.addEventListener('error',res,{once:true}); }));
     }
   }
+  if(earlyPlay) waits.push(earlyPlay);   // iOS: 재생 시작(성공) 또는 자동재생 거부(즉시)까지 대기
   Promise.all(waits).then(ready);
   setTimeout(ready, 8000);           // 안전장치: 네트워크 지연 시 최대 대기
 }
