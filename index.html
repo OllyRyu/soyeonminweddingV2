@@ -1438,7 +1438,7 @@ function initLoader(){
   let done=false;
   const bgm=document.getElementById('bgm');
   const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  // 로딩 중에는 소리가 나지 않게 잠금 — 로딩 화면이 사라지고 0.2초 뒤 startBgm이 해제하며 처음부터 재생(wireBgm이 참조)
+  // 로딩 중에는 소리가 나지 않게 잠금 — 로딩 화면이 사라지고 직후 startBgm이 해제하며 처음부터 재생(wireBgm이 참조)
   if(bgm) bgm.dataset.hold='1';
   // iOS는 터치 전 오디오 프리로드가 막혀 로딩이 끝난 뒤에야 다운로드가 시작됨(카톡 인앱에서 로딩이 유독 길던 원인)
   // → 로딩 시작과 동시에 '음소거 재생'을 시도해 폰트·사진과 병렬로 내려받기(들리지는 않음).
@@ -1449,7 +1449,7 @@ function initLoader(){
     const p=bgm.play();
     if(p && p.then) earlyPlay=p.then(()=>true).catch(()=>false);
   }
-  // 로딩 화면이 완전히 사라지고 0.2초 뒤 음악을 처음부터 시작
+  // 로딩 화면이 완전히 사라지고 직후 음악을 처음부터 시작
   const startBgm=()=>{
     if(!bgm) return;
     delete bgm.dataset.hold;
@@ -1460,12 +1460,12 @@ function initLoader(){
   };
   const hide=()=>{
     const wait=Math.max(0, MIN_MS-(performance.now()-start));
-    setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=>{ loader.classList.add('hidden'); setTimeout(startBgm, 200); }, 650); }, wait);
+    setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=>{ loader.classList.add('hidden'); startBgm(); }, 650); }, wait);
   };
   const ready=()=>{
     if(done) return; done=true;
     if(IS_IOS){ hide(); return; }               // 재생 가능 여부·버퍼링은 조기 재생이 이미 처리 — 시작은 startBgm이
-    // 안드로이드: 자동재생 가능 여부만 확인하고(성공하면 바로 멈춤 — 볼륨 0이라 들리지 않음) 실제 시작은 로딩 종료 0.2초 뒤.
+    // 안드로이드: 자동재생 가능 여부만 확인하고(성공하면 바로 멈춤 — 볼륨 0이라 들리지 않음) 실제 시작은 로딩 종료 직후.
     // 차단된 환경(삼성 인터넷 등)은 제스처 없이는 재생 불가 → '터치하여 입장'으로 전환(이때는 터치 순간 재생)
     const enterByTap=()=>{
       loader.classList.add('tap');
