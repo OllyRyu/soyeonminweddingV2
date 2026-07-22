@@ -1054,7 +1054,7 @@ function wireBgm(){
       audio.volume=0;                                       // 안드로이드/PC: 볼륨 0 + 페이드인으로 충분
       if(IOS){                                              // iOS만: 볼륨 조절이 안 되므로 muted로 마스킹
         audio.muted=true;                                   // (안드로이드에 적용하면 음소거 해제를 위반으로 보고 정지시켜 자동재생이 깨짐)
-        setTimeout(()=>{ audio.muted=false; if(audio.paused) audio.play().catch(()=>{}); }, 200);
+        setTimeout(()=>{ if(audio.dataset.hold) return; audio.muted=false; if(audio.paused) audio.play().catch(()=>{}); }, 200);   // 로딩 잠금 중엔 음소거 유지
       }
     }
   });
@@ -1066,12 +1066,13 @@ function wireBgm(){
     userActed=true;
     if(audio.paused) audio.play().catch(()=>{}); else audio.pause();
   });
-  const tryAuto=()=>{ if(!userActed && audio.paused) audio.play().catch(()=>{}); };
+  const tryAuto=()=>{ if(!userActed && audio.paused && !audio.dataset.hold) audio.play().catch(()=>{}); };
 
   // 브라우저 자동재생 정책 대응: 사용자 동작에서 재생 시도, 성공할 때까지 재시도
   const GESTURES=['pointerdown','touchstart','touchend','click','keydown','scroll'];
   const cleanup=()=> GESTURES.forEach(ev=> document.removeEventListener(ev, firstGesture));
   function firstGesture(e){
+    if(audio.dataset.hold) return;                 // 로딩 잠금 중에는 시작하지 않음 — 종료 0.5초 뒤 startBgm이 처리
     if(e.target && e.target.closest && e.target.closest('#bgmToggle')) return;
     if(userActed || !audio.paused){ cleanup(); return; }
     const p=audio.play();
@@ -1436,37 +1437,48 @@ function initLoader(){
   let done=false;
   const bgm=document.getElementById('bgm');
   const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  // 로딩 중에는 소리가 나지 않게 잠금 — 로딩 화면이 사라지고 0.5초 뒤 startBgm이 해제하며 처음부터 재생(wireBgm이 참조)
+  if(bgm) bgm.dataset.hold='1';
   // iOS는 터치 전 오디오 프리로드가 막혀 로딩이 끝난 뒤에야 다운로드가 시작됨(카톡 인앱에서 로딩이 유독 길던 원인)
-  // → 로딩 시작과 동시에 재생을 시도해 폰트·사진과 병렬로 내려받기. 허용 환경(카톡 인앱)은 준비되는 대로 재생이 시작되고
-  //   그때까지 로딩 화면 유지(노래가 준비된 뒤 입장). 차단 환경(사파리)은 즉시 거부되므로 기다리지 않음.
+  // → 로딩 시작과 동시에 '음소거 재생'을 시도해 폰트·사진과 병렬로 내려받기(들리지는 않음).
+  //   허용 환경(카톡 인앱)은 준비되는 대로 재생이 시작되고 그때까지 로딩 화면 유지. 차단 환경은 즉시 거부되므로 기다리지 않음.
   let earlyPlay=null;
   if(bgm && IS_IOS){
+    bgm.muted=true;
     const p=bgm.play();
     if(p && p.then) earlyPlay=p.then(()=>true).catch(()=>false);
   }
+  // 로딩 화면이 완전히 사라지고 0.5초 뒤 음악을 처음부터 시작
+  const startBgm=()=>{
+    if(!bgm) return;
+    delete bgm.dataset.hold;
+    if(!bgm.paused && !bgm.muted) return;          // 이미 정상 재생 중(터치 입장 등) → 그대로 둠
+    try{ bgm.pause(); bgm.currentTime=0; }catch(e){}
+    bgm.muted=false;
+    const p=bgm.play(); if(p && p.catch) p.catch(()=>{});   // 차단 환경은 wireBgm 첫 제스처가 이어받음
+  };
   const hide=()=>{
     const wait=Math.max(0, MIN_MS-(performance.now()-start));
-    setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=> loader.classList.add('hidden'), 650); }, wait);
+    setTimeout(()=>{ loader.classList.add('loaded'); setTimeout(()=>{ loader.classList.add('hidden'); setTimeout(startBgm, 500); }, 650); }, wait);
   };
   const ready=()=>{
     if(done) return; done=true;
-    if(bgm && !bgm.paused){ hide(); return; }   // 조기 재생이 이미 성공(iOS 카톡 인앱) → 음악과 함께 바로 입장
-    // 로딩 종료 시 재생 시도 — 허용 환경(카톡 인앱 등)은 음악과 함께 자동 입장.
-    // 차단 시: iOS(사파리)는 스크롤도 재생 제스처로 인정되므로 그냥 입장(wireBgm이 처리),
-    // 안드로이드(삼성 인터넷 등 크로뮴)는 스크롤이 인정되지 않아 '터치하여 입장'으로 전환
+    if(IS_IOS){ hide(); return; }               // 재생 가능 여부·버퍼링은 조기 재생이 이미 처리 — 시작은 startBgm이
+    // 안드로이드: 자동재생 가능 여부만 확인하고(성공하면 바로 멈춤 — 볼륨 0이라 들리지 않음) 실제 시작은 로딩 종료 0.5초 뒤.
+    // 차단된 환경(삼성 인터넷 등)은 제스처 없이는 재생 불가 → '터치하여 입장'으로 전환(이때는 터치 순간 재생)
     const enterByTap=()=>{
       loader.classList.add('tap');
       const ring=loader.querySelector('.loader-ring');
       if(ring) ring.outerHTML='<div class="loader-tap-ico">💌</div>';
       const sub=loader.querySelector('.loader-sub');
       if(sub) sub.textContent='화면을 터치해 초대장을 열어주세요';
-      loader.addEventListener('pointerup', ()=>{ if(bgm) bgm.play().catch(()=>{}); hide(); }, {once:true});
+      loader.addEventListener('pointerup', ()=>{ if(bgm){ delete bgm.dataset.hold; bgm.play().catch(()=>{}); } hide(); }, {once:true});
     };
     const p=bgm ? bgm.play() : null;
     if(p && p.then){
       let acted=false;
       const once=fn=>()=>{ if(acted) return; acted=true; fn(); };
-      p.then(once(hide)).catch(once(()=>{ IS_IOS ? hide() : enterByTap(); }));
+      p.then(()=>{ if(bgm.dataset.hold) bgm.pause(); once(hide)(); }).catch(once(enterByTap));
       setTimeout(once(hide), 1500);   // 재생 판정이 늦어지면 그냥 입장(재생은 wireBgm이 이어받음)
     } else {
       hide();
