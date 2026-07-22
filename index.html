@@ -847,7 +847,7 @@ function wireFeatures(){
   const gbOpen=document.getElementById('gbOpen');
   if(gbOpen) gbOpen.addEventListener('click', openGb);
   wireGb();
-  gbLoad();
+  gbLoadPromise=gbLoad();
 
   startCountdown();
 }
@@ -1176,6 +1176,7 @@ function initKakaoMap(){
    ============================================================ */
 const GB_PAGE=5;
 let gbCache=[]; let gbShown=GB_PAGE;
+let gbLoadPromise=null;   // 첫 로딩 완료 신호 — 로더가 방명록 바인딩까지 기다리는 데 사용
 const gbKey='guestbook_entries_v2';
 const gbLoadLocal=()=>{ try{ return JSON.parse(localStorage.getItem(gbKey)||'[]'); }catch(e){ return []; } };
 const gbSaveLocal=list=>{ try{ localStorage.setItem(gbKey, JSON.stringify(list)); }catch(e){} };
@@ -1462,6 +1463,8 @@ function initLoader(){
   };
   const waits=[];
   if(document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
+  // 방명록 메시지를 모두 받아 화면에 그린 뒤 입장 (gbJsonp 자체 8초 타임아웃이 있어 무한 대기 없음)
+  if(gbLoadPromise) waits.push(gbLoadPromise.catch(()=>{}));
   const cover=document.querySelector('.cover-img');
   if(cover && !cover.complete){
     waits.push(new Promise(res=>{ cover.addEventListener('load',res,{once:true}); cover.addEventListener('error',res,{once:true}); }));
